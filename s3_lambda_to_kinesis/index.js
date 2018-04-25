@@ -4,6 +4,7 @@ var util = require('util');
 
 // get reference to S3 client
 var s3 = new AWS.S3();
+var kinesis = new AWS.Kinesis();
 
 exports.handler = (event, context, callback) => {
     // Read options from the event.
@@ -18,20 +19,33 @@ exports.handler = (event, context, callback) => {
     });
 
     var numLines = 0;
-    rl.on('line', function(line) {
-        var fields = line.split(',');
-        var record = {
-            firstName: fields[0],
-            lastName: fields[1],
-            city: fields[2],
-            street: fields[3],
-            streetNumber: fields[4]
+    rl.on('line', function (line) {
+
+        var params = {
+            Data: line,
+            PartitionKey: ('person' + line).substring(0, 100),
+            StreamName: process.env.KINESIS_STREAM
         };
-        console.log(util.inspect(record, {depth: 2}));
+        kinesis.putRecord(params, function (err, data) {
+            if (err) {
+                console.log(err, err.stack);
+            }
+            else console.log(data);           // successful response
+        });
+        // var fields = line.split(',');
+        // var record = {
+        //     firstName: fields[0],
+        //     lastName: fields[1],
+        //     city: fields[2],
+        //     street: fields[3],
+        //     streetNumber: fields[4]
+        // };
+        // console.log(util.inspect(record, {depth: 2}));
         numLines++;
     })
-        .on('close', function() {
-            console.log('numLines: ' + numLines);
-            callback(null, 'lambda call finished, #lines: ' + numLines);
-        });
-};
+    .on('close', function () {
+        console.log('numLines: ' + numLines);
+        callback(null, 'lambda call finished, #lines: ' + numLines);
+    });
+}
+;

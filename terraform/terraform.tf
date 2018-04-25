@@ -75,10 +75,16 @@ resource "aws_iam_role_policy_attachment" "s3_lambda_to_kinesis-read-persongener
 resource "aws_lambda_function" "s3_lambda_to_kinesis" {
   function_name = "persons_data-s3_to_kinesis-${terraform.workspace}"
   handler = "index.handler"
+  timeout = 60
   role = "${aws_iam_role.s3_lambda_to_kinesis.arn}"
   runtime = "nodejs6.10"
   filename = "${var.file-lambda_s3_to_kinesis}"
   source_code_hash = "${base64sha256(file(var.file-lambda_s3_to_kinesis))}"
+  environment {
+    variables {
+      KINESIS_STREAM = "${aws_kinesis_stream.person_stream.name}"
+    }
+  }
 }
 
 resource "aws_lambda_permission" "allow_invoke-s3_lambda_to_kinesis" {
@@ -96,4 +102,34 @@ resource "aws_s3_bucket_notification" "s3_bucket_notification_to_lambda" {
     events = ["s3:ObjectCreated:*"]
     lambda_function_arn = "${aws_lambda_function.s3_lambda_to_kinesis.arn}"
   }
+}
+
+//
+// kinesis data stream where the objects from the bucket csv files are fed in
+//
+resource "aws_kinesis_stream" "person_stream" {
+  name = "person_stream-${terraform.workspace}"
+  shard_count = 1
+  retention_period = 24
+}
+
+resource "aws_iam_policy" "policy_write-person_stream" {
+  name = "write_${aws_kinesis_stream.person_stream.name}"
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["kinesis:PutRecord", "kinesis:PutRecords"],
+      "Resource": "${aws_kinesis_stream.person_stream.arn}"
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_to_kinesis-write_person_stream" {
+  policy_arn = "${aws_iam_policy.policy_write-person_stream.arn}"
+  role = "${aws_iam_role.s3_lambda_to_kinesis.name}"
 }

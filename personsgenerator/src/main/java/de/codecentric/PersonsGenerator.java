@@ -15,7 +15,7 @@ import java.text.MessageFormat;
 public class PersonsGenerator {
     public static void main(String[] args) {
         final Fairy fairy = Fairy.create();
-        int count = 10;
+        int count = 500;
         while (count-- > 0) {
             System.out.println(format(fairy.person()));
         }
