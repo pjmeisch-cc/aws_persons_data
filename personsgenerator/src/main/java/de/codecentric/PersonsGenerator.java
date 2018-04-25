@@ -15,10 +15,10 @@ import java.text.MessageFormat;
 public class PersonsGenerator {
     public static void main(String[] args) {
         final Fairy fairy = Fairy.create();
-        int count = 100;
-        do {
+        int count = 3;
+        while (count-- > 0) {
             System.out.println(format(fairy.person()));
-        } while (count-- > 0);
+        }
     }
 
     private static String format(Person person) {
