@@ -133,3 +133,22 @@ resource "aws_iam_role_policy_attachment" "lambda_to_kinesis-write_person_stream
   policy_arn = "${aws_iam_policy.policy_write-person_stream.arn}"
   role = "${aws_iam_role.s3_lambda_to_kinesis.name}"
 }
+
+//
+// elasticsearch
+//
+
+resource "aws_elasticsearch_domain" "persons" {
+  domain_name = "persons-${terraform.workspace}"
+  elasticsearch_version = "6.2"
+  cluster_config {
+    instance_count = 1
+    instance_type = "m3.medium.elasticsearch"
+  }
+}
+output "elasticsearch_endpoint" {
+  value = "${aws_elasticsearch_domain.persons.endpoint}"
+}
+output "elasticsearch_kibana_endpoint" {
+  value = "${aws_elasticsearch_domain.persons.kibana_endpoint}"
+}
