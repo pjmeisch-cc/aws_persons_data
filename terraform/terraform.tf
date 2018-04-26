@@ -77,7 +77,7 @@ resource "aws_lambda_function" "s3_lambda_to_kinesis" {
   handler = "index.handler"
   timeout = 60
   role = "${aws_iam_role.s3_lambda_to_kinesis.arn}"
-  runtime = "nodejs6.10"
+  runtime = "nodejs8.10"
   filename = "${var.file-lambda_s3_to_kinesis}"
   source_code_hash = "${base64sha256(file(var.file-lambda_s3_to_kinesis))}"
   environment {
