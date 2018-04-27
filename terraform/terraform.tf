@@ -163,6 +163,109 @@ EOF
 }
 
 //
+// kinesis firehose to elasticsearch
+//
+resource "aws_s3_bucket" "failed_records" {
+  region = "${var.region}"
+  bucket = "${var.bucket-person_kinesis_to_elastic_fails}-${terraform.workspace}"
+  acl = "private"
+}
+resource "aws_iam_role" "firehose" {
+  name = "CodecentricRoleForPersonDataKinesisFirehose-${terraform.workspace}"
+  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole",
+      "Principal": {
+        "Service": "firehose.amazonaws.com"
+      },
+      "Effect": "Allow",
+      "Sid": ""
+    }
+  ]
+}
+EOF
+}
+resource "aws_iam_policy" "firehose" {
+  policy = <<EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+       {
+          "Effect": "Allow",
+          "Action": [
+              "kinesis:DescribeStream",
+              "kinesis:GetShardIterator",
+              "kinesis:GetRecords"
+          ],
+          "Resource": "${aws_kinesis_stream.person_stream.arn}"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "es:DescribeElasticsearchDomain",
+                "es:DescribeElasticsearchDomains",
+                "es:DescribeElasticsearchDomainConfig",
+                "es:ESHttpPost",
+                "es:ESHttpPut"
+            ],
+          "Resource": [
+              "${aws_elasticsearch_domain.persons.arn}",
+              "${aws_elasticsearch_domain.persons.arn}/*"
+          ]
+       },
+       {
+          "Effect": "Allow",
+          "Action": [
+              "es:ESHttpGet"
+          ],
+          "Resource": [
+              "${aws_elasticsearch_domain.persons.arn}/_all/_settings",
+              "${aws_elasticsearch_domain.persons.arn}/_cluster/stats",
+              "${aws_elasticsearch_domain.persons.arn}/index-name*/_mapping/type-name",
+              "${aws_elasticsearch_domain.persons.arn}/_nodes",
+              "${aws_elasticsearch_domain.persons.arn}/_nodes/stats",
+              "${aws_elasticsearch_domain.persons.arn}/_nodes/*/stats",
+              "${aws_elasticsearch_domain.persons.arn}/_stats",
+              "${aws_elasticsearch_domain.persons.arn}/index-name*/_stats"
+          ]
+       }
+    ]
+}
+EOF
+}
+resource "aws_iam_role_policy_attachment" "firehose" {
+  role = "${aws_iam_role.firehose.name}"
+  policy_arn = "${aws_iam_policy.firehose.arn}"
+}
+resource "aws_kinesis_firehose_delivery_stream" "kinesis_to_elastic" {
+  name = "persons_kinesis_to_elasticsearch-${terraform.workspace}"
+
+  kinesis_source_configuration {
+    kinesis_stream_arn = "${aws_kinesis_stream.person_stream.arn}"
+    role_arn = "${aws_iam_role.firehose.arn}"
+  }
+
+  destination = "elasticsearch"
+  elasticsearch_configuration {
+    domain_arn = "${aws_elasticsearch_domain.persons.arn}"
+    index_name = "persons"
+    index_rotation_period = "NoRotation"
+    type_name = "person"
+    role_arn = "${aws_iam_role.firehose.arn}"
+    buffering_interval = 60
+    s3_backup_mode = "FailedDocumentsOnly"
+  }
+
+  s3_configuration {
+    bucket_arn = "${aws_s3_bucket.failed_records.arn}"
+    role_arn = "${aws_iam_role.firehose.arn}"
+  }
+}
+
+//
 // outputs
 //
 output "elasticsearch_endpoint" {
