@@ -137,7 +137,6 @@ resource "aws_iam_role_policy_attachment" "lambda_to_kinesis-write_person_stream
 //
 // elasticsearch
 //
-
 resource "aws_elasticsearch_domain" "persons" {
   domain_name = "persons-${terraform.workspace}"
   elasticsearch_version = "6.2"
@@ -146,9 +145,26 @@ resource "aws_elasticsearch_domain" "persons" {
     instance_type = "m3.medium.elasticsearch"
   }
 }
+resource "aws_elasticsearch_domain_policy" "access_persons" {
+  domain_name = "${aws_elasticsearch_domain.persons.domain_name}"
+  access_policies = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {"AWS": "${data.aws_caller_identity.current.account_id}"},
+      "Action": "es:*" ,
+      "Resource": "${aws_elasticsearch_domain.persons.arn}"
+    }
+  ]
+}
+EOF
+}
+
+//
+// outputs
+//
 output "elasticsearch_endpoint" {
   value = "${aws_elasticsearch_domain.persons.endpoint}"
-}
-output "elasticsearch_kibana_endpoint" {
-  value = "${aws_elasticsearch_domain.persons.kibana_endpoint}"
 }
