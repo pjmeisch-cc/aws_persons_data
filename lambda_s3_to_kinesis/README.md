@@ -8,6 +8,6 @@ RxJS must be installed with
 
 the code must be prepared as a zip file
 
-    zip s3_lambda_to_kinesis.zip node_modules index.js
+    zip -r lambda_s3_to_kinesis.zip node_modules index.js
 
 this file will be picked up from the terraform scripts
