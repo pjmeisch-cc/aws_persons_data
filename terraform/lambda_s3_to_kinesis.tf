@@ -20,7 +20,7 @@ EOF
 
 // policy to access the bucket with the data
 resource "aws_iam_policy" "policy_access-bucket_persongenerator_data" {
-  name = "rw_${aws_s3_bucket.persongenerator_data.bucket}"
+  name = "CCPolicyPersonDataBucket-${aws_s3_bucket.persongenerator_data.bucket}"
   policy = <<EOF
 {
   "Version": "2012-10-17",

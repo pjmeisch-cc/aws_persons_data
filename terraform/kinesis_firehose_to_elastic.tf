@@ -20,6 +20,7 @@ EOF
 
 // policy to get records fromt the kinesis stream and write to elasticsearch
 resource "aws_iam_policy" "firehose_to_elastic" {
+  name = "CCPolicyPersonDataFirehoseToElastic-${aws_kinesis_firehose_delivery_stream.kinesis_firehose_to_elastic.name}"
   policy = <<EOF
 {
     "Version": "2012-10-17",

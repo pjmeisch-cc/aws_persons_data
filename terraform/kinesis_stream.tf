@@ -7,7 +7,7 @@ resource "aws_kinesis_stream" "person_stream" {
 
 // policy to allow writing to the stream
 resource "aws_iam_policy" "policy_write-person_stream" {
-  name = "write_${aws_kinesis_stream.person_stream.name}"
+  name = "CCPolicyPersonDataWriteStream_${aws_kinesis_stream.person_stream.name}"
   policy = <<EOF
 {
   "Version": "2012-10-17",
