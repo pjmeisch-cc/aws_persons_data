@@ -8,6 +8,7 @@ import com.amazonaws.services.kinesis.producer.Attempt;
 import com.amazonaws.services.kinesis.producer.KinesisProducer;
 import com.amazonaws.services.kinesis.producer.KinesisProducerConfiguration;
 import com.amazonaws.services.kinesis.producer.UserRecordResult;
+import com.google.gson.Gson;
 import io.codearte.jfairy.Fairy;
 import io.codearte.jfairy.producer.person.Address;
 import io.codearte.jfairy.producer.person.Person;
@@ -32,6 +33,7 @@ import java.util.stream.Stream;
 public class PersonsGenerator {
 
     private final Fairy fairy = Fairy.create();
+    private final Gson gson = new Gson();
 
     @NotNull
     @Option(name = "-count", usage = "number of records to create")
@@ -65,17 +67,14 @@ public class PersonsGenerator {
     }
 
     private void sendToKinesis() {
-        final ProfileCredentialsProvider credentialsProvider = new ProfileCredentialsProvider("codecentric");
-        final KinesisProducerConfiguration configuration = new KinesisProducerConfiguration();
-        configuration.setCredentialsProvider(credentialsProvider);
-        configuration.setRegion("eu-central-1");
-        final KinesisProducer kinesis = new KinesisProducer(configuration);
+        final KinesisProducer kinesis = setupKinesis();
         List<Future<UserRecordResult>> putFutures = new LinkedList<>();
         persons()
                 .forEach(person -> {
                     try {
+                        final ByteBuffer byteBuffer = ByteBuffer.wrap(gson.toJson(person).getBytes("UTF-8"));
                         putFutures.add(kinesis.addUserRecord(streamName, "person-" + person.getLastName(),
-                                ByteBuffer.wrap(format(person).getBytes("UTF-8"))));
+                                byteBuffer));
                     } catch (UnsupportedEncodingException e) {
                         e.printStackTrace();
                     }
@@ -97,6 +96,15 @@ public class PersonsGenerator {
             }
         }
 
+    }
+
+    @NotNull
+    private KinesisProducer setupKinesis() {
+        final ProfileCredentialsProvider credentialsProvider = new ProfileCredentialsProvider("codecentric");
+        final KinesisProducerConfiguration configuration = new KinesisProducerConfiguration();
+        configuration.setCredentialsProvider(credentialsProvider);
+        configuration.setRegion("eu-central-1");
+        return new KinesisProducer(configuration);
     }
 
 
