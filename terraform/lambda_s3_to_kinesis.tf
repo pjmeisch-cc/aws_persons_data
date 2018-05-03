@@ -19,8 +19,9 @@ EOF
 }
 
 // policy to access the bucket with the data
-resource "aws_iam_policy" "policy_access-bucket_persongenerator_data" {
+resource "aws_iam_role_policy" "policy_access-bucket_persongenerator_data" {
   name = "CCPolicyPersonDataBucket-${aws_s3_bucket.persongenerator_data.bucket}"
+  role = "${aws_iam_role.lambda_s3_to_kinesis.id}"
   policy = <<EOF
 {
   "Version": "2012-10-17",
@@ -46,18 +47,6 @@ EOF
 // attach basic lambda execution
 resource "aws_iam_role_policy_attachment" "lambda_s3_to_kinesis-basic_execution" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-  role = "${aws_iam_role.lambda_s3_to_kinesis.name}"
-}
-
-// attach policy to access the bucket data
-resource "aws_iam_role_policy_attachment" "s3_lambda_to_kinesis-read-persongenerator_data" {
-  policy_arn = "${aws_iam_policy.policy_access-bucket_persongenerator_data.arn}"
-  role = "${aws_iam_role.lambda_s3_to_kinesis.name}"
-}
-
-// attach policy to write to kinesis data stream
-resource "aws_iam_role_policy_attachment" "lambda_to_kinesis-write_person_stream" {
-  policy_arn = "${aws_iam_policy.policy_write-person_stream.arn}"
   role = "${aws_iam_role.lambda_s3_to_kinesis.name}"
 }
 

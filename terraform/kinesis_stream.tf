@@ -6,8 +6,9 @@ resource "aws_kinesis_stream" "person_stream" {
 }
 
 // policy to allow writing to the stream
-resource "aws_iam_policy" "policy_write-person_stream" {
+resource "aws_iam_role_policy" "policy_write-person_stream" {
   name = "CCPolicyPersonDataWriteStream_${aws_kinesis_stream.person_stream.name}"
+  role = "${aws_iam_role.lambda_s3_to_kinesis.id}"
   policy = <<EOF
 {
   "Version": "2012-10-17",

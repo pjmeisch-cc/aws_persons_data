@@ -19,8 +19,9 @@ EOF
 }
 
 // policy to get records fromt the kinesis stream and write to elasticsearch
-resource "aws_iam_policy" "firehose_to_elastic" {
-  name = "CCPolicyPersonDataFirehoseToElastic-${aws_kinesis_firehose_delivery_stream.kinesis_firehose_to_elastic.name}"
+resource "aws_iam_role_policy" "firehose_to_elastic" {
+  name = "CCPolicyPersonDataFirehoseToElastic-${terraform.workspace}"
+  role = "${aws_iam_role.firehose_to_elastic.id}"
   policy = <<EOF
 {
     "Version": "2012-10-17",
@@ -69,14 +70,10 @@ resource "aws_iam_policy" "firehose_to_elastic" {
 EOF
 }
 
-// attach policy to role
-resource "aws_iam_role_policy_attachment" "firehose_to_elastic" {
-  role = "${aws_iam_role.firehose_to_elastic.name}"
-  policy_arn = "${aws_iam_policy.firehose_to_elastic.arn}"
-}
-
 // the firehose delivery stream
 resource "aws_kinesis_firehose_delivery_stream" "kinesis_firehose_to_elastic" {
+//  depends_on = ["aws_iam_role_policy.firehose_to_elastic", "aws_elasticsearch_domain_policy.access_persons"]
+  depends_on = ["aws_elasticsearch_domain_policy.access_persons"]
   name = "persons_kinesis_to_elasticsearch-${terraform.workspace}"
 
   kinesis_source_configuration {
