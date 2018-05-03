@@ -1,10 +1,10 @@
-var AWS = require('aws-sdk');
-var Readline = require('readline');
-var Util = require('util');
-var Rx = require('rx');
+const AWS = require('aws-sdk');
+const Readline = require('readline');
+const Util = require('util');
+const Rx = require('rx');
 
-var s3 = new AWS.S3();
-var kinesis = new AWS.Kinesis();
+const s3 = new AWS.S3();
+const kinesis = new AWS.Kinesis();
 
 // the method reads data from the file that is passed in the event (comes from a S3 bucket)
 // the lines must be csv with 5 fields (firstName, lastName, city, street, streetNumber). These lines
@@ -12,12 +12,12 @@ var kinesis = new AWS.Kinesis();
 exports.handler = (event, context, callback) => {
     // Read options from the event.
     console.log("Reading options from event:\n", Util.inspect(event, {depth: 5}));
-    var bucket = event.Records[0].s3.bucket.name;
+    const bucket = event.Records[0].s3.bucket.name;
     // Object key may have spaces or unicode non-ASCII characters.
-    var key = decodeURIComponent(event.Records[0].s3.object.key.replace(/\+/g, " "));
+    const key = decodeURIComponent(event.Records[0].s3.object.key.replace(/\+/g, " "));
 
-    var params = {Bucket: bucket, Key: key};
-    var readline = Readline.createInterface({
+    const params = {Bucket: bucket, Key: key};
+    const readline = Readline.createInterface({
         input: s3.getObject(params).createReadStream()
     });
 
@@ -34,8 +34,8 @@ exports.handler = (event, context, callback) => {
             subject.onCompleted();
         });
 
-    var numBuffers = 0;
-    var numRecords = 0;
+    const numBuffers = 0;
+    const numRecords = 0;
 
     subject
     // convert to person object
