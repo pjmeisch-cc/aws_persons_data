@@ -1,18 +1,18 @@
 // the dynamodb table to store the persons in
 resource "aws_dynamodb_table" "persons" {
-  hash_key = "City"
-  range_key = "FullName"
+  hash_key = "city"
+  range_key = "fullName"
   name = "persons_data-${terraform.workspace}"
   read_capacity = 10
   write_capacity = 10
 
   "attribute" {
-    name = "City"
+    name = "city"
     type = "S"
   }
 
   "attribute" {
-    name = "FullName"
+    name = "fullName"
     type = "S"
   }
 }

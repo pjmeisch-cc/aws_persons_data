@@ -18,9 +18,9 @@ resource "aws_iam_role" "lambda_kinesis_to_dynamo" {
 EOF
 }
 
-// attach basic lambda execution
+// attach policy for s3, dynamodb and cloudwatch
 resource "aws_iam_role_policy_attachment" "lambda_kinesis_to_dynamo-basic_execution" {
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+  policy_arn = "arn:aws:iam::aws:policy/AWSLambdaFullAccess"
   role = "${aws_iam_role.lambda_kinesis_to_dynamo.name}"
 }
 // attach lambda kinesis execution
@@ -38,6 +38,11 @@ resource "aws_lambda_function" "lambda_kinesis_to_dynamo" {
   runtime = "nodejs8.10"
   filename = "${var.file-lambda_kinesis_to_dynamo}"
   source_code_hash = "${base64sha256(file(var.file-lambda_kinesis_to_dynamo))}"
+  environment {
+    variables {
+      DYNAMODB_TABLE = "${aws_dynamodb_table.persons.name}"
+    }
+  }
 }
 
 // event source mapping from kinesis to lambda
