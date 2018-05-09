@@ -3,7 +3,7 @@
 //
 terraform {
   backend "s3" {
-    bucket = "pjmeisch-cc-terraform-bucket"
+    bucket = "de.codecentric.basf-test-pj"
     key = "persons_data"
   }
 }

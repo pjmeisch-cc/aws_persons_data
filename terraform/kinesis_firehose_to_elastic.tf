@@ -72,8 +72,7 @@ EOF
 
 // the firehose delivery stream
 resource "aws_kinesis_firehose_delivery_stream" "kinesis_firehose_to_elastic" {
-//  depends_on = ["aws_iam_role_policy.firehose_to_elastic", "aws_elasticsearch_domain_policy.access_persons"]
-  depends_on = ["aws_elasticsearch_domain_policy.access_persons"]
+  depends_on = ["aws_iam_role_policy.firehose_to_elastic", "aws_elasticsearch_domain_policy.access_persons"]
   name = "persons_kinesis_to_elasticsearch-${terraform.workspace}"
 
   kinesis_source_configuration {

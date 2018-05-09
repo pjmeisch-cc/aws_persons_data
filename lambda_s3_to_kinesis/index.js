@@ -16,9 +16,9 @@ exports.handler = (event, context, callback) => {
     // Object key may have spaces or unicode non-ASCII characters.
     const key = decodeURIComponent(event.Records[0].s3.object.key.replace(/\+/g, " "));
 
-    const params = {Bucket: bucket, Key: key};
+
     const readline = Readline.createInterface({
-        input: s3.getObject(params).createReadStream()
+        input: s3.getObject({Bucket: bucket, Key: key}).createReadStream()
     });
 
     const subject = new Rx.Subject();

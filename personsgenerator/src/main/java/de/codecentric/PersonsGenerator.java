@@ -4,11 +4,13 @@
 package de.codecentric;
 
 import com.amazonaws.auth.profile.ProfileCredentialsProvider;
+import com.amazonaws.services.kinesis.AmazonKinesis;
+import com.amazonaws.services.kinesis.AmazonKinesisClientBuilder;
+import com.amazonaws.services.kinesis.model.PutRecordRequest;
 import com.amazonaws.services.kinesis.producer.Attempt;
 import com.amazonaws.services.kinesis.producer.KinesisProducer;
 import com.amazonaws.services.kinesis.producer.KinesisProducerConfiguration;
 import com.amazonaws.services.kinesis.producer.UserRecordResult;
-import com.google.gson.Gson;
 import io.codearte.jfairy.Fairy;
 import io.codearte.jfairy.producer.person.Address;
 import io.codearte.jfairy.producer.person.Person;
@@ -33,7 +35,6 @@ import java.util.stream.Stream;
 public class PersonsGenerator {
 
     private final Fairy fairy = Fairy.create();
-    private final Gson gson = new Gson();
 
     @NotNull
     @Option(name = "-count", usage = "number of records to create")
@@ -42,12 +43,40 @@ public class PersonsGenerator {
     @Option(name = "-kinesis", usage = "kinesis stream name")
     private String streamName;
 
+    @Option(name = "-kinesisLib", usage = "kinesis library (kcl or sdk)")
+    private String kinesisLib = "sdk";
+
+    @Option(name = "-awsprofile", usage = "aws profile name")
+    private String awsProfile;
+
+    @Option(name = "-awsregion", usage = "aws region")
+    private String awsRegion = "eu-central-1";
+
     public static void main(String[] args) {
         try {
             new PersonsGenerator().run(args);
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    private void sendToKinesisWithAWSSDK() {
+        final AmazonKinesis client = setupKinesisWithAWSSDK();
+        persons().forEach(
+                person -> {
+                    try {
+                        PutRecordRequest putRecordRequest = new PutRecordRequest();
+                        putRecordRequest.setStreamName(streamName);
+                        final String json = json(person);
+                        final ByteBuffer byteBuffer = ByteBuffer.wrap(json.getBytes("UTF-8"));
+                        putRecordRequest.setData(byteBuffer);
+                        putRecordRequest.setPartitionKey("person-" + person.getLastName());
+                        client.putRecord(putRecordRequest);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+        );
     }
 
     private void run(@NotNull String[] args) {
@@ -60,21 +89,30 @@ public class PersonsGenerator {
         }
 
         if (null != streamName) {
-            sendToKinesis();
+            System.out.println("send to kinesis with " + kinesisLib);
+            if ("sdk".equals(kinesisLib)) {
+                sendToKinesisWithAWSSDK();
+            } else if ("kcl".equals(kinesisLib)) {
+                sendToKinesisWithKCL();
+            } else {
+                throw new IllegalArgumentException("unknown kinesisLib " + kinesisLib);
+            }
         } else {
             personsCsvs().forEach(System.out::println);
         }
     }
 
-    private void sendToKinesis() {
-        final KinesisProducer kinesis = setupKinesis();
+    private void sendToKinesisWithKCL() {
+        final KinesisProducer kinesis = setupKinesisWithKCL();
         List<Future<UserRecordResult>> putFutures = new LinkedList<>();
         persons()
                 .forEach(person -> {
                     try {
-                        final ByteBuffer byteBuffer = ByteBuffer.wrap(gson.toJson(person).getBytes("UTF-8"));
+                        final String json = json(person);
+                        final ByteBuffer byteBuffer = ByteBuffer.wrap(json.getBytes("UTF-8"));
                         putFutures.add(kinesis.addUserRecord(streamName, "person-" + person.getLastName(),
                                 byteBuffer));
+                        System.out.println("sent " + json);
                     } catch (UnsupportedEncodingException e) {
                         e.printStackTrace();
                     }
@@ -83,10 +121,7 @@ public class PersonsGenerator {
         for (Future<UserRecordResult> f : putFutures) {
             try {
                 UserRecordResult result = f.get(); // this does block
-                if (result.isSuccessful()) {
-                    System.out.println("Put record into shard " +
-                            result.getShardId());
-                } else {
+                if (!result.isSuccessful()) {
                     for (Attempt attempt : result.getAttempts()) {
                         System.err.println(attempt.getErrorMessage());
                     }
@@ -95,18 +130,39 @@ public class PersonsGenerator {
                 e.printStackTrace();
             }
         }
+    }
 
+
+    @NotNull
+    String json(@NotNull Person person) {
+        final Address address = person.getAddress();
+        return '{' + MessageFormat.format("\"firstName\":\"{0}\",\"lastName\":\"{1}\",\"city\":\"{2}\"," +
+                        "\"street:\":\"{3}\",\"streetNumber\":\"{4}\"",
+                person.getFirstName(), person.getLastName(), address.getCity(), address.getStreet(),
+                address.getStreetNumber()) + '}';
     }
 
     @NotNull
-    private KinesisProducer setupKinesis() {
-        final ProfileCredentialsProvider credentialsProvider = new ProfileCredentialsProvider("codecentric");
+    private KinesisProducer setupKinesisWithKCL() {
+        final ProfileCredentialsProvider credentialsProvider = new ProfileCredentialsProvider(awsProfile);
         final KinesisProducerConfiguration configuration = new KinesisProducerConfiguration();
         configuration.setCredentialsProvider(credentialsProvider);
-        configuration.setRegion("eu-central-1");
+        configuration.setRegion(awsRegion);
         return new KinesisProducer(configuration);
     }
 
+    @NotNull
+    private AmazonKinesis setupKinesisWithAWSSDK() {
+        final ProfileCredentialsProvider credentialsProvider = new ProfileCredentialsProvider(awsProfile);
+
+        AmazonKinesisClientBuilder clientBuilder = AmazonKinesisClientBuilder.standard();
+        clientBuilder.setRegion(awsRegion);
+        clientBuilder.setCredentials(credentialsProvider);
+
+        AmazonKinesis kinesisClient = clientBuilder.build();
+        return kinesisClient;
+
+    }
 
     @NotNull
     private String format(@NotNull Person person) {
