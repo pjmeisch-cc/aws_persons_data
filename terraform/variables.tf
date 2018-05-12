@@ -14,3 +14,6 @@ variable "file-lambda_s3_to_kinesis" {
 variable "file-lambda_kinesis_to_dynamo" {
   default = "../lambda_kinesis_to_dynamo/lambda_kinesis_to_dynamo.zip"
 }
+variable "file-lambda_dynamo_to_apigateway" {
+  default = "../lambda_dynamo_to_apigateway/lambda_dynamo_to_apigateway.zip"
+}

@@ -48,6 +48,6 @@ resource "aws_lambda_function" "lambda_kinesis_to_dynamo" {
 // event source mapping from kinesis to lambda
 resource "aws_lambda_event_source_mapping" "mapping_kinesis_to_lambda" {
   event_source_arn = "${aws_kinesis_stream.person_stream.arn}"
-  function_name = "${aws_lambda_function.lambda_kinesis_to_dynamo.function_name}"
+  function_name = "${aws_lambda_function.lambda_kinesis_to_dynamo.arn}"
   starting_position = "LATEST"
 }
