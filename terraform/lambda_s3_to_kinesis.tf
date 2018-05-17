@@ -50,6 +50,12 @@ resource "aws_iam_role_policy_attachment" "lambda_s3_to_kinesis-basic_execution"
   role = "${aws_iam_role.lambda_s3_to_kinesis.name}"
 }
 
+data "archive_file" "lambda_s3_to_kinesis" {
+  output_path = "${path.root}/lambdazips/lambda_s3_to_kinesis.zip"
+  type = "zip"
+  source_dir = "${var.path-lambda_s3_to_kinesis}"
+}
+
 // the lambda itself
 resource "aws_lambda_function" "lambda_s3_to_kinesis" {
   function_name = "persons_data-s3_to_kinesis-${terraform.workspace}"
@@ -57,8 +63,8 @@ resource "aws_lambda_function" "lambda_s3_to_kinesis" {
   timeout = 60
   role = "${aws_iam_role.lambda_s3_to_kinesis.arn}"
   runtime = "nodejs8.10"
-  filename = "${var.file-lambda_s3_to_kinesis}"
-  source_code_hash = "${base64sha256(file(var.file-lambda_s3_to_kinesis))}"
+  filename = "${data.archive_file.lambda_s3_to_kinesis.output_path}"
+  source_code_hash = "${data.archive_file.lambda_s3_to_kinesis.output_base64sha256}"
   environment {
     variables {
       KINESIS_STREAM = "${aws_kinesis_stream.person_stream.name}"
@@ -80,7 +86,8 @@ resource "aws_lambda_permission" "allow_invoke-lambda_s3_to_kinesis" {
 resource "aws_s3_bucket_notification" "s3_bucket_notification_to_lambda" {
   bucket = "${aws_s3_bucket.persongenerator_data.id}"
   lambda_function {
-    events = ["s3:ObjectCreated:*"]
+    events = [
+      "s3:ObjectCreated:*"]
     lambda_function_arn = "${aws_lambda_function.lambda_s3_to_kinesis.arn}"
   }
 }
